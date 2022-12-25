@@ -21,7 +21,6 @@ use Composer\Autoload\ClassLoader;
  */
 class Plugin implements PluginInterface, EventSubscriberInterface
 {
-
     /**
      * The console Input/Output object
      *
@@ -123,26 +122,34 @@ class Plugin implements PluginInterface, EventSubscriberInterface
         foreach ($packages as $package) {
             $extra = $package->getExtra();
             if (isset($extra['composer-extend-class']) && is_array($extra['composer-extend-class'])) {
-                foreach ($extra['composer-extend-class'] as $oldClass => $newClass) {
-                    $classExtends[$oldClass] = $newClass;
+                foreach ($extra['composer-extend-class'] as $oldClassPath => $fixClassData) {
+                    $classExtends[$oldClassPath] = $fixClassData;
                 }
             }
         }
 
-        foreach ($classExtends as $oldClass => $newClass) {
-            $oldPath   = realpath($loader->findFile($oldClass));
-            $newPath   = realpath($loader->findFile($newClass));
-            $rawName   = str_replace('.php', '', basename($newPath));
-            $newPath   = str_replace(basename($newPath), $rawName."_Old.php", $newPath);
-            $namespace = preg_replace('/'.$rawName.'$/', '', $oldClass);
+        foreach ($classExtends as $oldClassPath => $fixClassData) {
+            if (!is_array($fixClassData)) {
+                $fixClassData = ['path' => $fixClassData];
+            }
 
-            $this->safeCopy($oldPath, $newPath);
+            $oldPath   = realpath($oldClassPath);
+            $newPath   = realpath($fixClassData['path']);
+            $rawName   = str_replace('.php', '', basename($newPath));
+            $newPath   = str_replace(basename($newPath), $rawName."_0R1giN4L.php", $newPath);
+            //$namespace = preg_replace('/'.$rawName.'$/', '', $oldClassPath);
+
+            //$this->safeCopy($oldPath, $newPath);
             $autoloadConf = $composer->getPackage()->getAutoload();
             $autoloadConf['exclude-from-classmap'][] = $newPath;
-            $autoloadConf['psr-4'][$namespace]       = dirname($newPath);
+            //$autoloadConf['psr-4'][$namespace] = dirname($newPath);
             $composer->getPackage()->setAutoload($autoloadConf);
 
-            $this->adjustCopiedClass($newPath, $rawName);
+            //$this->adjustCopiedClassContent($newPath, $rawName);
+            if ($fixClassData['createOldFile'] ?? true) {
+                $this->safeCopy($oldPath, $newPath);
+                $this->adjustCopiedClassContent($newPath, $rawName);
+            }
         }
     }
 
@@ -158,6 +165,7 @@ class Plugin implements PluginInterface, EventSubscriberInterface
         $target = fopen($target, 'w+');
 
         stream_copy_to_stream($source, $target);
+
         fclose($source);
         fclose($target);
     }
@@ -168,12 +176,13 @@ class Plugin implements PluginInterface, EventSubscriberInterface
      * @param $path
      * @param $oldClassName
      */
-    public function adjustCopiedClass($path, $oldClassName)
+    public function adjustCopiedClassContent($path, $oldClassName)
     {
         $content = file_get_contents($path);
 
-        $regex   = '/(^\s*?class\s*?)('.$oldClassName.')([^\{]*?\{)/m';
-        $subst   = '${1}${2}_Old${3}';
+        // No need to preg_quote() $oldClassName because a PHP is not allowed to contain special characters.
+        $regex   = "/(^\s*?(?:(?:(?:abstract\s+?)?class)|(?:interface))\s+?)($oldClassName)([^\{]*?\{)/m";
+        $subst   = '${1}${2}_0R1giN4L${3}';
         $content = preg_replace($regex, $subst, $content, 1);
 
         file_put_contents($path, $content);

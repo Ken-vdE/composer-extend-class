@@ -8,26 +8,31 @@ to endure if you do not follow the OneTrueParadigm IoC.
 So for real world people, with real world problems - you are welcome!
 
 
-  example conf (root level of any composer.json file, root or vendor):
+example conf (root level of any composer.json file, root or vendor):
 
-  ```
-      "extra": {
-          "composer-extend-class": {
-              "Namespace\\For\\Buggyclass": "App\\Patches\\Buggyclass"
-          }
-      },
-  ```
-
-The new class saved under "namespace" `App\Patches` called `Buggyclass`
-source:
-
+```json
+"autoload": {
+    "psr-4": {
+        "Buggy\\Namespace\\": "path/to/FixedNamespace/"
+    }
+},
+"extra": {
+    "composer-extend-class": {
+        "path/to/BuggyClass.php": "path/to/FixedClass.php",
+        "path/to/AnotherBuggyClass.php": {
+            "path": "path/to/AnotherFixedClass.php",
+            "createOldFile": true
+        }
+    }
+},
 ```
-<?php
-namespace Namespace\For;   // using same namespace as old class
 
-class Buggyclass extends Buggyclass_Old  // name to extend == name + _Old
+You can now extend the original class e.g. FixedClass.php:
+```php
+namespace Buggy\Namespace; // Use the original namespace
+
+class BuggyClass extends BuggyClass_0R1giN4L // Extend original class name + _0R1giN4L
 {
-
     public function brokenFunction($payload)
     {
         return $payload * 100;
@@ -36,6 +41,9 @@ class Buggyclass extends Buggyclass_Old  // name to extend == name + _Old
 ```
 
 Simple as that. Old class file will be copied and source altered for it to have
-the new unique class name of "Class_Old" but same old namespace.
+the new unique class name of "Class_0R1giN4L" but same old namespace.
 
 Not quality checked code, no tests, no warranty. Copyleft KludgeWorks LLC.
+
+# Don't forget
+To gitignore the generated *_0R1giN4L.php files.php
